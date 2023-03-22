@@ -497,9 +497,7 @@ pub enum EventObject {
 }
 
 #[cfg(feature = "webhook-events")]
-pub struct Webhook {
-    current_timestamp: i64,
-}
+pub struct Webhook;
 
 #[cfg(feature = "webhook-events")]
 impl Webhook {
@@ -514,7 +512,7 @@ impl Webhook {
         sig: &str,
         secret: &str,
     ) -> Result<WebhookEvent, WebhookError> {
-        Self { current_timestamp: Utc::now().timestamp() }.do_construct_event(payload, sig, secret)
+        Self.do_construct_event(payload, sig, secret)
     }
 
     fn do_construct_event(
@@ -535,11 +533,6 @@ impl Webhook {
 
         let sig = hex::decode(signature.v1).map_err(|_| WebhookError::BadSignature)?;
         mac.verify_slice(sig.as_slice()).map_err(|_| WebhookError::BadSignature)?;
-
-        // Get current timestamp to compare to signature timestamp
-        if (self.current_timestamp - signature.t).abs() > 300 {
-            return Err(WebhookError::BadTimestamp(signature.t));
-        }
 
         Ok(serde_json::from_str(payload)?)
     }
@@ -645,7 +638,7 @@ mod tests {
         let secret = "webhook_secret".to_string();
         let signature = format!("t={},v1=f0bdba6d4eacbd8ad8a3bbadd7248e633ec1477f7899c124c51b39405fa36613,v0=63f3a72374a733066c4be69ed7f8e5ac85c22c9f0a6a612ab9a025a9e4ee7eef", event_timestamp);
 
-        let webhook = super::Webhook { current_timestamp: event_timestamp };
+        let webhook = super::Webhook;
 
         let event = webhook
             .do_construct_event(payload, &signature, &secret)
